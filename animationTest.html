@@ -80,7 +80,7 @@ function preload() {
     
 	game.load.atlasJSONHash('orangeGuy', 'assets/orangeGuy.png', 'assets/orangeGuy.json');
 	game.load.atlasJSONHash('objects', 'assets/blocks.png', 'assets/blocks.json');
-	game.load.image('bullet', 'assets/bullet.png')
+	game.load.image('bullet', 'assets/bullet.png');
     game.load.image('sky', 'assets/background.png');
 
 }
@@ -529,6 +529,8 @@ function update() {
 	game.physics.arcade.collide(person.player, blocks);
 	game.physics.arcade.overlap(bullet, blocks, collectBullet, null, this);
 	game.physics.arcade.collide(bullet, blocks);
+
+//	bullet.rotation = game.physics.arcade.moveToPointer(bullet, 650);
 	
     //  Reset the players velocity (movement)
     person.player.body.velocity.x = 0;	
@@ -554,11 +556,12 @@ function update() {
 
     if (game.input.activePointer.isDown)
     {
+    	person.player.animations.play('attackUp');
         fire();
     }
 
     //  Allow the player to jump if they are touching the ground.
-    if (cursors.up.isDown )
+    if (cursors.up.isDown && person.player.body.touching.down)
     {
         person.Jump();
     }
@@ -570,9 +573,9 @@ function fire() {
     if (game.time.now > nextFire && bullets.countDead() > 0)
     {
         nextFire = game.time.now + fireRate;
-
         bullet.reset(sprite.x - 8, sprite.y - 8);
-        game.physics.arcade.moveToPointer(bullet, 650);
+        
+        bullet.rotation = game.physics.arcade.moveToPointer(bullet, 650);
     }
 
 }
