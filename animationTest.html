@@ -1,14 +1,14 @@
-<!doctype html> 
-<html lang="en"> 
-<head> 
+<!doctype html>
+<html lang="en">
+<head>
 	<meta charset="UTF-8" />
-    <title>Phaser - Making your first game, part 9</title>
+	<title>Phaser - Making your first game, part 9</title>
 	<script type="text/javascript" src="js/phaser.min.js"></script>
-    <style type="text/css">
-        body {
-            margin: 0;
-        }
-    </style>
+	<style type="text/css">
+		body {
+		margin: 0;
+		}
+	</style>
 </head>
 <body>
 
@@ -28,8 +28,6 @@ Person = function (index, game, spriteName,x ,y ) {
 		up:false,
 		fire:false
 	}
-    var x = x;
-    var y = y;
     this.game = game;
     this.player = game.add.sprite(x, y, spriteName,'idle/idle_000.png');
 	game.physics.arcade.enable(this.player);
@@ -74,15 +72,15 @@ Map = function(mapName) {
 	}
 }
 
-var game = new Phaser.Game(1600, 960, Phaser.AUTO, '', { preload: preload, create: create, update: update });
+var game = new Phaser.Game(1600, 960, Phaser.AUTO, '', { preload: preload, create: create, update: update, render: render });
 
 function preload() {
 
 	game.load.json('map1','assets/map1.json');
-
+    
 	game.load.atlasJSONHash('orangeGuy', 'assets/orangeGuy.png', 'assets/orangeGuy.json');
 	game.load.atlasJSONHash('objects', 'assets/blocks.png', 'assets/blocks.json');
-
+	game.load.image('bullet', 'assets/bullet.png')
     game.load.image('sky', 'assets/background.png');
 
 }
@@ -91,10 +89,12 @@ var player;
 var blocks
 var cursors;
 
-var key1;
-var key2;
-var key3;
-var key4;
+var sprite;
+var bullets;
+var bullet;
+
+var fireRate = 100;
+var nextFire = 0;
 
 var background;
 var person;
@@ -250,12 +250,27 @@ function create() {
     // Here we create the ground.
 	map = new Map('map1');
 	
+	bullets = game.add.group();
+    bullets.enableBody = true;
+    bullets.physicsBodyType = Phaser.Physics.ARCADE;
+    bullets.createMultiple(50, 'bullet');
+
+    bullets.setAll('checkWorldBounds', true);
+    bullets.setAll('outOfBoundsKill', true);
+    
+    bullet = bullets.getFirstDead();
+
+   
 
 	// The player and its settings
-    person = new Person(1,game,'orangeGuy',500,500);
+    person = new Person(1,game,'orangeGuy',500,500);0
     //  We need to enable physics on the playergeG
-    game.physics.arcade.enable(person.player);
 
+    sprite = game.add.sprite(person.player.body.velocity.x, person.player.body.velocity.y, person.spriteName);
+    sprite.anchor.set(0.5);
+    game.physics.arcade.enable(person.player);
+	game.physics.enable(sprite, Phaser.Physics.ARCADE);
+	sprite.body.allowRotation = false;
 
     //  Our two animations, walking left and right.
     person.player.animations.add('walk', [
@@ -502,20 +517,21 @@ function create() {
 
 
     //  Our controls.
-    cursors = game.input.keyboard.createCursorKeys();
-	key1 = game.input.keyboard.addKey(Phaser.Keyboard.ONE);
-	key2 = game.input.keyboard.addKey(Phaser.Keyboard.TWO);
-	key3 = game.input.keyboard.addKey(Phaser.Keyboard.THREE);
-	key4 = game.input.keyboard.addKey(Phaser.Keyboard.FOUR);
-    
+    cursors = game.input.keyboard.createCursorKeys();    
 }
 
 function update() {
 
+	sprite = game.add.sprite(person.player.body.x, person.player.body.y, person.spriteName);
+
+
 	//  Collide the player and the stars with the platforms
 	game.physics.arcade.collide(person.player, blocks);
+	game.physics.arcade.overlap(bullet, blocks, collectBullet, null, this);
+	game.physics.arcade.collide(bullet, blocks);
+	
     //  Reset the players velocity (movement)
-    person.player.body.velocity.x = 0;
+    person.player.body.velocity.x = 0;	
 
     if (cursors.left.isDown)
     {
@@ -533,13 +549,41 @@ function update() {
         //  Stand still
         person.player.animations.play('idle');
     }
-    
+
+    sprite.rotation = game.physics.arcade.angleToPointer(sprite);
+
+    if (game.input.activePointer.isDown)
+    {
+        fire();
+    }
+
     //  Allow the player to jump if they are touching the ground.
     if (cursors.up.isDown )
     {
         person.Jump();
     }
 	
+}
+
+function fire() {
+
+    if (game.time.now > nextFire && bullets.countDead() > 0)
+    {
+        nextFire = game.time.now + fireRate;
+
+        bullet.reset(sprite.x - 8, sprite.y - 8);
+        game.physics.arcade.moveToPointer(bullet, 650);
+    }
+
+}
+
+function collectBullet(bullet, blocks) {
+    bullet.kill();
+}
+
+function render() {
+    game.debug.text('Active Bullets: ' + bullets.countLiving() + ' / ' + bullets.total, 32, 32);
+    game.debug.spriteInfo(sprite, 32, 450);
 }
 
 </script>
