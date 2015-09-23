@@ -527,8 +527,8 @@ function update() {
 
 	//  Collide the player and the stars with the platforms
 	game.physics.arcade.collide(person.player, blocks);
-	game.physics.arcade.overlap(bullet, blocks, collectBullet, null, this);
-	game.physics.arcade.collide(bullet, blocks);
+	game.physics.arcade.overlap(bullets, blocks, collectBullet, null, this);
+	game.physics.arcade.collide(bullets, blocks);
 
 //	bullet.rotation = game.physics.arcade.moveToPointer(bullet, 650);
 	
