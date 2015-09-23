@@ -64,9 +64,21 @@ Person.prototype.Jump = function()
 		this.player.body.velocity.y = -350;
 }
 
+Map = function(mapName) {
+	var mapJSON = game.cache.getJSON(mapName);
+	
+	for (i=0; i<15; i++) {
+		for (j=0; j<25; j++) {
+			block = new Block((j*64)+32, (i*64)+32, mapJSON.tile[i][j]);
+		}
+	}
+}
+
 var game = new Phaser.Game(1600, 960, Phaser.AUTO, '', { preload: preload, create: create, update: update });
 
 function preload() {
+
+	game.load.json('map1','assets/map1.json');
 
 	game.load.atlasJSONHash('orangeGuy', 'assets/orangeGuy.png', 'assets/orangeGuy.json');
 	game.load.atlasJSONHash('objects', 'assets/blocks.png', 'assets/blocks.json');
@@ -236,67 +248,7 @@ function create() {
 	blocks.enableBody = true;
 
     // Here we create the ground.
-	block = new Block(32, 928, BlockType.FULL_PLAIN);
-	block = new Block(96, 928, BlockType.FULL_PLAIN);
-	block = new Block(160, 928, BlockType.FULL_PLAIN);
-	block = new Block(224, 928, BlockType.FULL_PLAIN);
-	block = new Block(288, 928, BlockType.FULL_PLAIN);
-	block = new Block(352, 928, BlockType.FULL_PLAIN);
-	block = new Block(416, 928, BlockType.FULL_PLAIN);
-	block = new Block(480, 928, BlockType.FULL_PLAIN);
-	block = new Block(544, 928, BlockType.FULL_PLAIN);
-	block = new Block(608, 928, BlockType.FULL_PLAIN);
-	block = new Block(672, 928, BlockType.FULL_PLAIN);
-	block = new Block(736, 928, BlockType.FULL_PLAIN);
-	block = new Block(800, 928, BlockType.FULL_PLAIN);
-	block = new Block(864, 928, BlockType.FULL_PLAIN);
-	block = new Block(928, 928, BlockType.FULL_PLAIN);
-	block = new Block(992, 928, BlockType.FULL_PLAIN);
-	block = new Block(1056, 928, BlockType.FULL_PLAIN);
-	block = new Block(1120, 928, BlockType.FULL_PLAIN);
-	block = new Block(1184, 928, BlockType.FULL_PLAIN);
-	block = new Block(1248, 928, BlockType.FULL_PLAIN);
-	block = new Block(1312, 928, BlockType.FULL_PLAIN);
-	block = new Block(1376, 928, BlockType.FULL_PLAIN);
-	block = new Block(1440, 928, BlockType.FULL_PLAIN);
-	block = new Block(1504, 928, BlockType.FULL_PLAIN);
-	block = new Block(1568, 928, BlockType.FULL_PLAIN);
-	
-	block = new Block(32, 864, BlockType.FULL_CHISELED);
-	block = new Block(96, 864, BlockType.INNER_LOWER_LEFT_CORNER);
-	block = new Block(160, 864, BlockType.SURFACE);
-	block = new Block(224, 864, BlockType.SURFACE);
-	block = new Block(288, 864, BlockType.SURFACE);
-	block = new Block(352, 864, BlockType.SURFACE);
-	block = new Block(416, 864, BlockType.SURFACE);
-	block = new Block(480, 864, BlockType.SURFACE);
-	block = new Block(544, 864, BlockType.SURFACE);
-	block = new Block(608, 864, BlockType.SURFACE);
-	block = new Block(672, 864, BlockType.SURFACE);
-	block = new Block(736, 864, BlockType.SURFACE);
-	block = new Block(800, 864, BlockType.SURFACE);
-	block = new Block(864, 864, BlockType.SURFACE);
-	block = new Block(928, 864, BlockType.SURFACE);
-	block = new Block(992, 864, BlockType.SURFACE);
-	block = new Block(1056, 864, BlockType.SURFACE);
-	block = new Block(1120, 864, BlockType.SURFACE);
-	block = new Block(1184, 864, BlockType.SURFACE);
-	block = new Block(1248, 864, BlockType.SURFACE);
-	block = new Block(1312, 864, BlockType.SURFACE);
-	block = new Block(1376, 864, BlockType.SURFACE);
-	block = new Block(1440, 864, BlockType.SURFACE);
-	block = new Block(1504, 864, BlockType.INNER_LOWER_RIGHT_CORNER);
-	block = new Block(1568, 864, BlockType.FULL_CHISELED);
-	
-	block = new Block(32, 800, BlockType.FULL_PLAIN);
-	block = new Block(96, 800, BlockType.HEAD_LEFT);
-	block = new Block(1504, 800, BlockType.HEAD_RIGHT);
-	block = new Block(1568, 800, BlockType.FULL_PLAIN);
-	
-	block = new Block(32, 736, BlockType.SURFACE);
-	block = new Block(96, 736, BlockType.SURFACE_LEFT_CORNER);
-	block = new Block(1504, 736, BlockType.SURFACE_RIGHT_CORNER);
-	block = new Block(1568, 736, BlockType.SURFACE);
+	map = new Map('map1');
 	
 
 	// The player and its settings
