@@ -1,0 +1,596 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+    <title>Phaser - Making your first game, part 9</title>
+	<script type="text/javascript" src="js/phaser.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+Person = function (index, game, spriteName,x ,y ) {
+	this.cursor = {
+		left:false,
+		right:false,
+		up:false,
+		fire:false		
+	}
+
+	this.input = {
+		left:false,
+		right:false,
+		up:false,
+		fire:false
+	}
+    var x = x;
+    var y = y;
+    this.game = game;
+    this.player = game.add.sprite(x, y, spriteName,'idle/idle_000.png');
+	game.physics.arcade.enable(this.player);
+	this.id=index;
+	this.currentSpeed =0;
+    this.alive = true;
+    this.personId = index;
+	//  Player physics properties. Give the little guy a slight bounce.
+    this.player.body.bounce.y = 0.2;
+    this.player.body.gravity.y = 300;
+    this.player.body.collideWorldBounds = true;
+	this.player.anchor.set(0.38, 1);
+	this.player.body.setSize((this.player.width/3)*2,this.player.height-25,-5,-5);
+};
+
+Person.prototype.moveLeft = function()
+{
+		this.player.body.velocity.x = -150;
+		this.player.scale.x = -1;
+        this.player.animations.play('walk');
+}
+
+Person.prototype.moveRight = function()
+{
+		this.player.body.velocity.x = 150;
+		this.player.scale.x = 1;
+        this.player.animations.play('walk');
+}
+
+Person.prototype.Jump = function()
+{
+		this.player.body.velocity.y = -350;
+}
+
+var game = new Phaser.Game(1600, 960, Phaser.AUTO, '', { preload: preload, create: create, update: update });
+
+function preload() {
+
+	game.load.atlasJSONHash('orangeGuy', 'assets/orangeGuy.png', 'assets/orangeGuy.json');
+	game.load.atlasJSONHash('objects', 'assets/blocks.png', 'assets/blocks.json');
+
+    game.load.image('sky', 'assets/background.png');
+
+}
+
+var player;
+var blocks
+var cursors;
+
+var key1;
+var key2;
+var key3;
+var key4;
+
+var background;
+var person;
+var blocks;
+
+var score = 0;
+var scoreText;
+
+Block = function(x,y, blockType) {
+	if (blockType == BlockType.FULL_PLAIN) {
+	var fullBlockPlain = blocks.create(x, y, 'objects', 'stone.png');
+		fullBlockPlain.anchor.set(0.5, 0.5);
+		fullBlockPlain.body.immovable = true;
+	} else if (blockType == BlockType.FULL_CHISELED) {
+		var fullBlockChiseled = blocks.create(x, y, 'objects', 'chiseled.png');
+		fullBlockChiseled.anchor.set(0.5, 0.5);
+		fullBlockChiseled.body.immovable = true;
+	} else if (blockType == BlockType.HEAD_RIGHT) {
+		var headBlockRight = blocks.create(x, y, 'objects', 'head.png');
+		headBlockRight.anchor.set(0.5, 0.5);
+		headBlockRight.body.setSize(55,35,2.5,0);
+		headBlockRight.body.immovable = true;
+		var blockSideRight = blocks.create(x, y, null);
+		blockSideRight.anchor.set(0.5, 0.5);
+		blockSideRight.body.setSize(17,64,23.5,0);
+		blockSideRight.body.immovable = true;
+	} else if (blockType == BlockType.HEAD_LEFT) {
+		var headBlockLeft = blocks.create(x, y, 'objects', 'head.png');
+		headBlockLeft.anchor.set(0.5, 0.5);
+		headBlockLeft.body.setSize(55,35,-2.5,0);
+		headBlockLeft.body.immovable = true;
+		headBlockLeft.scale.x = -1;
+		var blockSideLeft = blocks.create(x, y, null);
+		blockSideLeft.anchor.set(0.5, 0.5);
+		blockSideLeft.body.setSize(17,64,-23.5,0);
+		blockSideLeft.body.immovable = true;
+		blockSideLeft.scale.x = -1;
+	} else if (blockType == BlockType.SIDE_RIGHT) {
+		var blockSideRight = blocks.create(x, y, 'objects', 'side.png');
+		blockSideRight.anchor.set(0.5, 0.5);
+		blockSideRight.body.setSize(17,64,23.5,0);
+		blockSideRight.body.immovable = true;
+	} else if (blockType == BlockType.SIDE_LEFT) {
+		var blockSideLeft = blocks.create(x, y, 'objects', 'side.png');
+		blockSideLeft.anchor.set(0.5, 0.5);
+		blockSideLeft.body.setSize(17,64,-23.5,0);
+		blockSideLeft.body.immovable = true;
+		blockSideLeft.scale.x = -1;
+	} else if (blockType == BlockType.SURFACE_RIGHT_CORNER) {
+		var blockSurfaceCornerRight = blocks.create(x, y, 'objects', 'surfaceCorner.png');
+		blockSurfaceCornerRight.anchor.set(0.5, 0.5);
+		blockSurfaceCornerRight.body.setSize(17,15,23.5,24.5);
+		blockSurfaceCornerRight.body.immovable = true;
+	} else if (blockType == BlockType.SURFACE) {
+		var blockSurface = blocks.create(x, y, 'objects', 'surface.png');
+		blockSurface.anchor.set(0.5, 0.5);
+		blockSurface.body.setSize(64,15,0,24.5);
+		blockSurface.body.immovable = true;
+	} else if (blockType == BlockType.SURFACE_LEFT_CORNER) {
+		var blockSurfaceCornerLeft = blocks.create(x, y, 'objects', 'surfaceCorner.png');
+		blockSurfaceCornerLeft.anchor.set(0.5, 0.5);
+		blockSurfaceCornerLeft.body.setSize(17,15,-23.5,24.5);
+		blockSurfaceCornerLeft.body.immovable = true;
+		blockSurfaceCornerLeft.scale.x = -1;
+	} else if (blockType == BlockType.BOTTOM_RIGHT_CORNER) {
+		var blockBottomCornerRight = blocks.create(x, y, 'objects', 'bottomCorner.png');
+		blockBottomCornerRight.anchor.set(0.5, 0.5);
+		blockBottomCornerRight.body.setSize(17,7,23.5,-28.5);
+		blockBottomCornerRight.body.immovable = true;
+	} else if (blockType == BlockType.BOTTOM) {
+		var blockBottom = blocks.create(x, y, 'objects', 'bottom.png');
+		blockBottom.anchor.set(0.5, 0.5);
+		blockBottom.body.setSize(64,7,0,-28.5);
+		blockBottom.body.immovable = true;
+	} else if (blockType == BlockType.BOTTOM_LEFT_CORNER) {
+		var blockBottomCornerLeft = blocks.create(x, y, 'objects', 'bottomCorner.png');
+		blockBottomCornerLeft.anchor.set(0.5, 0.5);
+		blockBottomCornerLeft.body.setSize(17,7,-23.5,-28.5);
+		blockBottomCornerLeft.body.immovable = true;
+		blockBottomCornerLeft.scale.x = -1;
+	} else if (blockType == BlockType.INNER_UPPER_RIGHT_CORNER) {
+		var blockInnerUpperCornerRight = blocks.create(x, y, 'objects', 'InnerCorner.png');
+		blockInnerUpperCornerRight.anchor.set(0.5, 0.5);
+		blockInnerUpperCornerRight.body.setSize(64,7,0,-28.5);
+		blockInnerUpperCornerRight.body.immovable = true;
+		var blockSideRight = blocks.create(x, y, null);
+		blockSideRight.anchor.set(0.5, 0.5);
+		blockSideRight.body.setSize(17,64,23.5,0);
+		blockSideRight.body.immovable = true;
+	} else if (blockType == BlockType.INNER_UPPER_LEFT_CORNER) {
+		var blockInnerUpperCornerLeft = blocks.create(x, y, 'objects', 'InnerCorner2.png');
+		blockInnerUpperCornerLeft.anchor.set(0.5, 0.5);
+		blockInnerUpperCornerLeft.body.setSize(64,7,0,-28.5);
+		blockInnerUpperCornerLeft.body.immovable = true;
+		var blockSideLeft = blocks.create(x, y, null);
+		blockSideLeft.anchor.set(0.5, 0.5);
+		blockSideLeft.body.setSize(17,64,-23.5,0);
+		blockSideLeft.body.immovable = true;
+		blockSideLeft.scale.x = -1;
+	} else if (blockType == BlockType.INNER_LOWER_RIGHT_CORNER) {
+		var blockInnerLowerCornerRight = blocks.create(x, y, 'objects', 'InnerCorner3.png');
+		blockInnerLowerCornerRight.anchor.set(0.5, 0.5);
+		blockInnerLowerCornerRight.body.setSize(64,15,0,24.5);
+		blockInnerLowerCornerRight.body.immovable = true;
+		var blockSideRight = blocks.create(x, y, null);
+		blockSideRight.anchor.set(0.5, 0.5);
+		blockSideRight.body.setSize(17,64,23.5,0);
+		blockSideRight.body.immovable = true;
+	} else if (blockType == BlockType.INNER_LOWER_LEFT_CORNER) {
+		var blockInnerLowerCornerLeft = blocks.create(x, y, 'objects', 'InnerCorner4.png');
+		blockInnerLowerCornerLeft.anchor.set(0.5, 0.5);
+		blockInnerLowerCornerLeft.body.setSize(64,15,0,24.5);
+		blockInnerLowerCornerLeft.body.immovable = true;
+		var blockSideLeft = blocks.create(x, y, null);
+		blockSideLeft.anchor.set(0.5, 0.5);
+		blockSideLeft.body.setSize(17,64,-23.5,0);
+		blockSideLeft.body.immovable = true;
+	}
+	
+}
+
+BlockType = {
+	FULL_PLAIN: 1,
+	FULL_CHISELED: 2,
+	HEAD_RIGHT: 3,
+	HEAD_LEFT: 4,
+	SIDE_RIGHT: 5,
+	SIDE_LEFT: 6,
+	SURFACE_RIGHT_CORNER: 7,
+	SURFACE: 8,
+	SURFACE_LEFT_CORNER: 9,
+	BOTTOM_RIGHT_CORNER: 10,
+	BOTTOM: 11,
+	BOTTOM_LEFT_CORNER: 12,
+	INNER_UPPER_RIGHT_CORNER: 13,
+	INNER_UPPER_LEFT_CORNER: 14,
+	INNER_LOWER_RIGHT_CORNER: 15,
+	INNER_LOWER_LEFT_CORNER: 16
+}
+
+function create() {
+
+    //  We're going to be using physics, so enable the Arcade Physics system
+    game.physics.startSystem(Phaser.Physics.ARCADE);
+
+    //  A simple background for our game
+    game.add.sprite(0, 0, 'sky');
+
+	blocks = game.add.group();
+
+	blocks.enableBody = true;
+
+    // Here we create the ground.
+	block = new Block(32, 928, BlockType.FULL_PLAIN);
+	block = new Block(96, 928, BlockType.FULL_PLAIN);
+	block = new Block(160, 928, BlockType.FULL_PLAIN);
+	block = new Block(224, 928, BlockType.FULL_PLAIN);
+	block = new Block(288, 928, BlockType.FULL_PLAIN);
+	block = new Block(352, 928, BlockType.FULL_PLAIN);
+	block = new Block(416, 928, BlockType.FULL_PLAIN);
+	block = new Block(480, 928, BlockType.FULL_PLAIN);
+	block = new Block(544, 928, BlockType.FULL_PLAIN);
+	block = new Block(608, 928, BlockType.FULL_PLAIN);
+	block = new Block(672, 928, BlockType.FULL_PLAIN);
+	block = new Block(736, 928, BlockType.FULL_PLAIN);
+	block = new Block(800, 928, BlockType.FULL_PLAIN);
+	block = new Block(864, 928, BlockType.FULL_PLAIN);
+	block = new Block(928, 928, BlockType.FULL_PLAIN);
+	block = new Block(992, 928, BlockType.FULL_PLAIN);
+	block = new Block(1056, 928, BlockType.FULL_PLAIN);
+	block = new Block(1120, 928, BlockType.FULL_PLAIN);
+	block = new Block(1184, 928, BlockType.FULL_PLAIN);
+	block = new Block(1248, 928, BlockType.FULL_PLAIN);
+	block = new Block(1312, 928, BlockType.FULL_PLAIN);
+	block = new Block(1376, 928, BlockType.FULL_PLAIN);
+	block = new Block(1440, 928, BlockType.FULL_PLAIN);
+	block = new Block(1504, 928, BlockType.FULL_PLAIN);
+	block = new Block(1568, 928, BlockType.FULL_PLAIN);
+	
+	block = new Block(32, 864, BlockType.FULL_CHISELED);
+	block = new Block(96, 864, BlockType.INNER_LOWER_LEFT_CORNER);
+	block = new Block(160, 864, BlockType.SURFACE);
+	block = new Block(224, 864, BlockType.SURFACE);
+	block = new Block(288, 864, BlockType.SURFACE);
+	block = new Block(352, 864, BlockType.SURFACE);
+	block = new Block(416, 864, BlockType.SURFACE);
+	block = new Block(480, 864, BlockType.SURFACE);
+	block = new Block(544, 864, BlockType.SURFACE);
+	block = new Block(608, 864, BlockType.SURFACE);
+	block = new Block(672, 864, BlockType.SURFACE);
+	block = new Block(736, 864, BlockType.SURFACE);
+	block = new Block(800, 864, BlockType.SURFACE);
+	block = new Block(864, 864, BlockType.SURFACE);
+	block = new Block(928, 864, BlockType.SURFACE);
+	block = new Block(992, 864, BlockType.SURFACE);
+	block = new Block(1056, 864, BlockType.SURFACE);
+	block = new Block(1120, 864, BlockType.SURFACE);
+	block = new Block(1184, 864, BlockType.SURFACE);
+	block = new Block(1248, 864, BlockType.SURFACE);
+	block = new Block(1312, 864, BlockType.SURFACE);
+	block = new Block(1376, 864, BlockType.SURFACE);
+	block = new Block(1440, 864, BlockType.SURFACE);
+	block = new Block(1504, 864, BlockType.INNER_LOWER_RIGHT_CORNER);
+	block = new Block(1568, 864, BlockType.FULL_CHISELED);
+	
+	block = new Block(32, 800, BlockType.FULL_PLAIN);
+	block = new Block(96, 800, BlockType.HEAD_LEFT);
+	block = new Block(1504, 800, BlockType.HEAD_RIGHT);
+	block = new Block(1568, 800, BlockType.FULL_PLAIN);
+	
+	block = new Block(32, 736, BlockType.SURFACE);
+	block = new Block(96, 736, BlockType.SURFACE_LEFT_CORNER);
+	block = new Block(1504, 736, BlockType.SURFACE_RIGHT_CORNER);
+	block = new Block(1568, 736, BlockType.SURFACE);
+	
+
+	// The player and its settings
+    person = new Person(1,game,'orangeGuy',500,500);
+    //  We need to enable physics on the playergeG
+    game.physics.arcade.enable(person.player);
+
+
+    //  Our two animations, walking left and right.
+    person.player.animations.add('walk', [
+		'walk/walk_000.png',
+		'walk/walk_001.png',
+		'walk/walk_002.png', 
+		'walk/walk_003.png', 
+		'walk/walk_004.png',
+		'walk/walk_005.png',
+		'walk/walk_006.png',
+		'walk/walk_007.png',
+		'walk/walk_008.png',
+		'walk/walk_009.png',
+		'walk/walk_010.png',
+		'walk/walk_011.png', 
+		'walk/walk_012.png', 
+		'walk/walk_013.png',
+		'walk/walk_014.png',
+		'walk/walk_015.png'
+		], 16, true);
+		
+	person.player.animations.add('idle', [
+		'idle/idle_000.png',
+		'idle/idle_001.png',
+		'idle/idle_002.png', 
+		'idle/idle_003.png', 
+		'idle/idle_004.png',
+		'idle/idle_005.png',
+		'idle/idle_006.png',
+		'idle/idle_007.png',
+		'idle/idle_008.png',
+		'idle/idle_009.png',
+		'idle/idle_010.png',
+		'idle/idle_011.png', 
+		'idle/idle_012.png', 
+		'idle/idle_013.png',
+		'idle/idle_014.png',
+		'idle/idle_015.png'
+		], 16, true);
+		
+	person.player.animations.add('jump', [
+		'jump/jump_000.png',
+		'jump/jump_001.png',
+		'jump/jump_002.png', 
+		'jump/jump_003.png', 
+		'jump/jump_004.png',
+		'jump/jump_005.png',
+		'jump/jump_006.png',
+		'jump/jump_007.png'
+		], 16, false);
+		
+	person.player.animations.add('land', [
+		'jump/jump_008.png',
+		'jump/jump_009.png',
+		'jump/jump_010.png',
+		'jump/jump_011.png', 
+		'jump/jump_012.png', 
+		'jump/jump_013.png',
+		'jump/jump_014.png',
+		'jump/jump_015.png'
+		], 16, false);
+		
+	person.player.animations.add('run', [
+		'run/run_000.png',
+		'run/run_001.png',
+		'run/run_002.png', 
+		'run/run_003.png', 
+		'run/run_004.png',
+		'run/run_005.png',
+		'run/run_006.png',
+		'run/run_007.png',
+		'run/run_008.png',
+		'run/run_009.png',
+		'run/run_010.png',
+		'run/run_011.png', 
+		'run/run_012.png', 
+		'run/run_013.png',
+		'run/run_014.png',
+		'run/run_015.png'
+		], 16, true);
+		
+	person.player.animations.add('crouch', [
+		'crouch/crouch_000.png',
+		'crouch/crouch_001.png',
+		'crouch/crouch_002.png', 
+		'crouch/crouch_003.png', 
+		'crouch/crouch_004.png',
+		'crouch/crouch_005.png',
+		'crouch/crouch_006.png',
+		'crouch/crouch_007.png',
+		'crouch/crouch_008.png',
+		'crouch/crouch_009.png',
+		'crouch/crouch_010.png',
+		'crouch/crouch_011.png', 
+		'crouch/crouch_012.png', 
+		'crouch/crouch_013.png',
+		'crouch/crouch_014.png',
+		'crouch/crouch_015.png'
+		], 16, true);
+		
+	person.player.animations.add('duck', [
+		'duck/duck_000.png',
+		'duck/duck_001.png',
+		'duck/duck_002.png',
+		], 16, false);
+		
+	person.player.animations.add('standUp', [
+		'duck/duck_002.png',
+		'duck/duck_001.png',
+		'duck/duck_000.png',
+		], 16, false);
+		
+	person.player.animations.add('hurt', [
+		'hurt/hurt_000.png',
+		'hurt/hurt_001.png',
+		'hurt/hurt_002.png', 
+		'hurt/hurt_003.png', 
+		'hurt/hurt_004.png',
+		'hurt/hurt_005.png',
+		'hurt/hurt_006.png',
+		'hurt/hurt_007.png',
+		'hurt/hurt_008.png',
+		'hurt/hurt_009.png',
+		'hurt/hurt_010.png',
+		'hurt/hurt_011.png'
+		], 16, false);
+		
+	person.player.animations.add('death', [
+		'death/death_000.png',
+		'death/death_001.png',
+		'death/death_002.png', 
+		'death/death_003.png', 
+		'death/death_004.png',
+		'death/death_005.png',
+		'death/death_006.png',
+		'death/death_007.png',
+		'death/death_008.png',
+		'death/death_009.png',
+		'death/death_010.png',
+		'death/death_011.png', 
+		'death/death_012.png', 
+		'death/death_013.png',
+		'death/death_014.png',
+		'death/death_015.png',
+		'death/death_016.png',
+		'death/death_017.png', 
+		'death/death_018.png', 
+		'death/death_019.png',
+		'death/death_020.png',
+		'death/death_021.png',
+		'death/death_022.png',
+		'death/death_023.png'
+		], 16, false);
+		
+	person.player.animations.add('jumpOnWall', [
+		'wallJump/wallJump_000.png',
+		'wallJump/wallJump_001.png',
+		'wallJump/wallJump_002.png', 
+		'wallJump/wallJump_003.png', 
+		'wallJump/wallJump_004.png',
+		'wallJump/wallJump_005.png',
+		'wallJump/wallJump_006.png',
+		'wallJump/wallJump_007.png',
+		'wallJump/wallJump_008.png',
+		'wallJump/wallJump_009.png'
+		], 16, false);
+		
+	person.player.animations.add('jumpFromWall', [
+		'wallJump/wallJump_010.png',
+		'wallJump/wallJump_011.png', 
+		'wallJump/wallJump_012.png', 
+		'wallJump/wallJump_013.png',
+		'wallJump/wallJump_014.png',
+		'wallJump/wallJump_015.png',
+		'wallJump/wallJump_016.png',
+		'wallJump/wallJump_017.png',
+		'wallJump/wallJump_018.png'
+		], 16, false);
+		
+	person.player.animations.add('landFromWall', [
+		'wallJump/wallJump_019.png',
+		'wallJump/wallJump_020.png', 
+		'wallJump/wallJump_021.png', 
+		'wallJump/wallJump_022.png',
+		'wallJump/wallJump_023.png'
+		], 16, false);
+		
+	person.player.animations.add('attackStraight', [
+		'attackStraight/attackStraight_000.png',
+		'attackStraight/attackStraight_001.png',
+		'attackStraight/attackStraight_002.png', 
+		'attackStraight/attackStraight_003.png', 
+		'attackStraight/attackStraight_004.png',
+		'attackStraight/attackStraight_005.png',
+		'attackStraight/attackStraight_006.png',
+		'attackStraight/attackStraight_007.png',
+		'attackStraight/attackStraight_008.png',
+		'attackStraight/attackStraight_009.png',
+		'attackStraight/attackStraight_010.png',
+		'attackStraight/attackStraight_011.png', 
+		'attackStraight/attackStraight_012.png', 
+		'attackStraight/attackStraight_013.png',
+		'attackStraight/attackStraight_014.png',
+		'attackStraight/attackStraight_015.png'
+		], 16, false);
+		
+	person.player.animations.add('attackDown', [
+		'attackDown/attackDown_000.png',
+		'attackDown/attackDown_001.png',
+		'attackDown/attackDown_002.png', 
+		'attackDown/attackDown_003.png', 
+		'attackDown/attackDown_004.png',
+		'attackDown/attackDown_005.png',
+		'attackDown/attackDown_006.png',
+		'attackDown/attackDown_007.png',
+		'attackDown/attackDown_008.png',
+		'attackDown/attackDown_009.png',
+		'attackDown/attackDown_010.png',
+		'attackDown/attackDown_011.png', 
+		'attackDown/attackDown_012.png', 
+		'attackDown/attackDown_013.png',
+		'attackDown/attackDown_014.png',
+		'attackDown/attackDown_015.png'
+		], 16, false);
+		
+	person.player.animations.add('attackUp', [
+		'attackUp/attackUp_000.png',
+		'attackUp/attackUp_001.png',
+		'attackUp/attackUp_002.png', 
+		'attackUp/attackUp_003.png', 
+		'attackUp/attackUp_004.png',
+		'attackUp/attackUp_005.png',
+		'attackUp/attackUp_006.png',
+		'attackUp/attackUp_007.png',
+		'attackUp/attackUp_008.png',
+		'attackUp/attackUp_009.png',
+		'attackUp/attackUp_010.png',
+		'attackUp/attackUp_011.png', 
+		'attackUp/attackUp_012.png', 
+		'attackUp/attackUp_013.png',
+		'attackUp/attackUp_014.png',
+		'attackUp/attackUp_015.png'
+		], 16, false);
+
+
+    //  Our controls.
+    cursors = game.input.keyboard.createCursorKeys();
+	key1 = game.input.keyboard.addKey(Phaser.Keyboard.ONE);
+	key2 = game.input.keyboard.addKey(Phaser.Keyboard.TWO);
+	key3 = game.input.keyboard.addKey(Phaser.Keyboard.THREE);
+	key4 = game.input.keyboard.addKey(Phaser.Keyboard.FOUR);
+    
+}
+
+function update() {
+
+	//  Collide the player and the stars with the platforms
+	game.physics.arcade.collide(person.player, blocks);
+    //  Reset the players velocity (movement)
+    person.player.body.velocity.x = 0;
+
+    if (cursors.left.isDown)
+    {
+        //  Move to the left
+        person.moveLeft();
+		
+    }
+    else if (cursors.right.isDown)
+    {
+        //  Move to the right
+       person.moveRight();
+    }
+    else
+    {
+        //  Stand still
+        person.player.animations.play('idle');
+    }
+    
+    //  Allow the player to jump if they are touching the ground.
+    if (cursors.up.isDown )
+    {
+        person.Jump();
+    }
+	
+}
+
+</script>
+
+</body>
+</html>
