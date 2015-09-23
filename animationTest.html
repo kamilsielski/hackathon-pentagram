@@ -168,6 +168,12 @@ Person.prototype.playAnimation = function() {
 		this.player.animations.play('idle');
 	}else if(this.status == PersonStatus.CROUCH){
 		this.player.animations.play('crouch');
+	}else if(this.status == PersonStatus.ATTACK_UP){
+		this.player.animations.play('attackUp');
+	}else if(this.status == PersonStatus.ATTACK_STRAIGHT){
+		this.player.animations.play('attackStraight');
+	}else if(this.status == PersonStatus.ATTACK_DOWN){
+		this.player.animations.play('attackDown');
 	}
 	console.log(this.status);
 }
@@ -181,7 +187,10 @@ PersonStatus = {
 	JUMP: 6,
 	FLY: 7,
 	LAND: 8,
-	ON_WALL: 9
+	ON_WALL: 9,
+	ATTACK_UP: 10,
+	ATTACK_STRAIGHT: 11,
+	ATTACK_DOWN: 12
 }
 
 Person.prototype.startJumping = function(){
