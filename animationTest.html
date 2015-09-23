@@ -1,14 +1,14 @@
-<!doctype html>
-<html lang="en">
-<head>
+<!doctype html> 
+<html lang="en"> 
+<head> 
 	<meta charset="UTF-8" />
-	<title>Phaser - Making your first game, part 9</title>
+    <title>Phaser - Making your first game, part 9</title>
 	<script type="text/javascript" src="js/phaser.min.js"></script>
-	<style type="text/css">
-		body {
-		margin: 0;
-		}
-	</style>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
 </head>
 <body>
 
@@ -28,6 +28,12 @@ Person = function (index, game, spriteName,x ,y ) {
 		up:false,
 		fire:false
 	}
+	
+	var context = context;
+	var status = PersonStatus.IDLE;
+    var x = x;
+    var y = y;
+	var onGround = true;
     this.game = game;
     this.player = game.add.sprite(x, y, spriteName,'idle/idle_000.png');
 	game.physics.arcade.enable(this.player);
@@ -36,7 +42,7 @@ Person = function (index, game, spriteName,x ,y ) {
     this.alive = true;
     this.personId = index;
 	//  Player physics properties. Give the little guy a slight bounce.
-    this.player.body.bounce.y = 0.2;
+    this.player.body.bounce.y = 0;
     this.player.body.gravity.y = 300;
     this.player.body.collideWorldBounds = true;
 	this.player.anchor.set(0.38, 1);
@@ -47,20 +53,149 @@ Person.prototype.moveLeft = function()
 {
 		this.player.body.velocity.x = -150;
 		this.player.scale.x = -1;
-        this.player.animations.play('walk');
+		if(this.onGround) {
+			this.status = PersonStatus.RUN;
+		}
+		
+        
 }
 
 Person.prototype.moveRight = function()
 {
+		
 		this.player.body.velocity.x = 150;
 		this.player.scale.x = 1;
-        this.player.animations.play('walk');
+        
+		if(this.onGround) {
+			this.status = PersonStatus.RUN;
+		}
+}
+
+Person.prototype.standStill = function()
+{
+	if(this.onGround) {
+		this.status = PersonStatus.IDLE;
+	} else {
+		this.status = PersonStatus.FLY;
+	}
+	
 }
 
 Person.prototype.Jump = function()
 {
-		this.player.body.velocity.y = -350;
+	this.status = PersonStatus.JUMP;
+	this.player.body.velocity.y = -350;
 }
+
+Person.prototype.Land = function()
+{
+
+}
+
+Person.prototype.Run = function()
+{
+
+}
+
+Person.prototype.Crouch = function(scale)
+{
+		this.status = PersonStatus.CROUCH;
+}
+
+Person.prototype.StandUp = function()
+{
+
+}
+
+Person.prototype.Hurt = function()
+{
+
+}
+
+Person.prototype.Death = function()
+{
+
+}
+
+Person.prototype.JumpOnWall = function()
+{
+
+}
+
+Person.prototype.JumpFromWall = function()
+{
+	this.player.body.velocity.x = -150;
+	this.player.body.velocity.y = -350;
+	this.player.animations.play('jumpFromWall');
+}
+
+Person.prototype.LandFromWall = function()
+{
+
+}
+
+Person.prototype.Attack = function(side)
+{
+	
+}
+
+Person.prototype.Nothing = function()
+{
+	    if(this.status == PersonStatus.FLY)
+		{
+			this.player.animations.play('midAir');
+		}else
+		{
+			this.player.animations.play('idle');
+		}
+}
+
+Person.prototype.playAnimation = function() {
+	if(this.status == PersonStatus.FLY)
+	{
+		this.player.animations.play('midAir');
+	}else if(this.status == PersonStatus.IDLE){
+		this.player.animations.play('idle');
+	}else if(this.status == PersonStatus.DUCK){
+		this.player.animations.play('duck');
+		this.player.events.onAnimationComplete.add(this.startJumping,this.context);
+	}else if(this.status == PersonStatus.JUMP){
+		this.player.animations.play('jump');
+		this.player.events.onAnimationComplete.add(this.startFlying,this.context);
+	}else if(this.status == PersonStatus.RUN){
+		this.player.animations.play('run');
+	}else if(this.status == PersonStatus.IDLE){
+		this.player.animations.play('idle');
+	}else if(this.status == PersonStatus.CROUCH){
+		this.player.animations.play('crouch');
+	}
+	console.log(this.status);
+}
+
+PersonStatus = {
+	IDLE: 1,
+	WALK: 2,
+	RUN: 3,
+	CROUCH: 4,
+	DUCK: 5,
+	JUMP: 6,
+	FLY: 7,
+	LAND: 8,
+	ON_WALL: 9
+}
+
+Person.prototype.startJumping = function(){
+	this.status = PersonStatus.JUMP;
+	console.log(this.status);
+	console.log('testlog1');
+}
+
+Person.prototype.startFlying = function(){
+	this.status = PersonStatus.FLY;
+	console.log(this.status);
+	console.log('testlog2');
+}
+
 
 Map = function(mapName) {
 	var mapJSON = game.cache.getJSON(mapName);
@@ -80,7 +215,7 @@ function preload() {
     
 	game.load.atlasJSONHash('orangeGuy', 'assets/orangeGuy.png', 'assets/orangeGuy.json');
 	game.load.atlasJSONHash('objects', 'assets/blocks.png', 'assets/blocks.json');
-	game.load.image('bullet', 'assets/bullet.png');
+	game.load.image('bullet', 'assets/dart.png');
     game.load.image('sky', 'assets/background.png');
 
 }
@@ -263,7 +398,7 @@ function create() {
    
 
 	// The player and its settings
-    person = new Person(1,game,'orangeGuy',500,500);0
+    person = new Person(1,game,'orangeGuy',500,500, this);
     //  We need to enable physics on the playergeG
 
     sprite = game.add.sprite(person.player.body.velocity.x, person.player.body.velocity.y, person.spriteName);
@@ -310,7 +445,21 @@ function create() {
 		'idle/idle_014.png',
 		'idle/idle_015.png'
 		], 16, true);
-		
+	
+	person.player.animations.add('duckJump', [
+		'duck/duck_000.png',
+		'duck/duck_001.png',
+		'duck/duck_002.png',
+		'jump/jump_000.png',
+		'jump/jump_001.png',
+		'jump/jump_002.png', 
+		'jump/jump_003.png', 
+		'jump/jump_004.png',
+		'jump/jump_005.png',
+		'jump/jump_006.png',
+		'jump/jump_007.png'
+		], 16, false);
+	
 	person.player.animations.add('jump', [
 		'jump/jump_000.png',
 		'jump/jump_001.png',
@@ -322,6 +471,11 @@ function create() {
 		'jump/jump_007.png'
 		], 16, false);
 		
+	person.player.animations.add('midAir', [
+		'jump/jump_006.png',
+		'jump/jump_007.png'
+		], 16, true);
+	
 	person.player.animations.add('land', [
 		'jump/jump_008.png',
 		'jump/jump_009.png',
@@ -535,6 +689,15 @@ function update() {
     //  Reset the players velocity (movement)
     person.player.body.velocity.x = 0;	
 
+	if(person.player.body.touching.down)
+	{
+		person.onGround = true;
+	} else
+	{
+		person.onGround = false;
+		person.status = PersonStatus.FLY;
+	}
+	
     if (cursors.left.isDown)
     {
         //  Move to the left
@@ -545,13 +708,13 @@ function update() {
     {
         //  Move to the right
        person.moveRight();
-    }
-    else
-    {
-        //  Stand still
-        person.player.animations.play('idle');
-    }
-
+    } else if (cursors.down.isDown){
+	person.Crouch();
+	} 
+	else {
+		person.standStill();
+	}
+    
     sprite.rotation = game.physics.arcade.angleToPointer(sprite);
 
     if (game.input.activePointer.isDown)
@@ -559,13 +722,12 @@ function update() {
     	person.player.animations.play('attackUp');
         fire();
     }
-
-    //  Allow the player to jump if they are touching the ground.
-    if (cursors.up.isDown && person.player.body.touching.down)
+    
+	if (cursors.up.isDown && person.onGround)
     {
         person.Jump();
     }
-	
+	person.playAnimation();
 }
 
 function fire() {
