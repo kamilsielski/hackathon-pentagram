@@ -1,14 +1,14 @@
-<!doctype html> 
-<html lang="en"> 
-<head> 
+<!doctype html>
+<html lang="en">
+<head>
 	<meta charset="UTF-8" />
-    <title>Phaser - Making your first game, part 9</title>
+	<title>PentaGram</title>
 	<script type="text/javascript" src="js/phaser.min.js"></script>
-    <style type="text/css">
-        body {
-            margin: 0;
-        }
-    </style>
+	<style type="text/css">
+		body {
+		margin: 0;
+		}
+	</style>
 </head>
 <body>
 
@@ -34,6 +34,8 @@ Person = function (index, game, spriteName,x ,y ) {
     var x = x;
     var y = y;
 	var onGround = true;
+	this.transAnim = false;
+	this.jumpVelocity = -400;
     this.game = game;
     this.player = game.add.sprite(x, y, spriteName,'idle/idle_000.png');
 	game.physics.arcade.enable(this.player);
@@ -55,9 +57,10 @@ Person.prototype.moveLeft = function()
 		this.player.scale.x = -1;
 		if(this.onGround) {
 			this.status = PersonStatus.RUN;
+			this.transAnim = false;
+		} else {
+			this.Fly();
 		}
-		
-        
 }
 
 Person.prototype.moveRight = function()
@@ -68,23 +71,50 @@ Person.prototype.moveRight = function()
         
 		if(this.onGround) {
 			this.status = PersonStatus.RUN;
+			this.transAnim = false;
+		} else {
+			this.Fly();
 		}
 }
 
 Person.prototype.standStill = function()
 {
-	if(this.onGround) {
-		this.status = PersonStatus.IDLE;
-	} else {
-		this.status = PersonStatus.FLY;
+	if(this.onGround && !this.transAnim) {
+		if(this.status == PersonStatus.FLY){
+			this.status = PersonStatus.LAND;
+			this.transAnim = true;
+		} else if(this.status == PersonStatus.CROUCH){ 
+			this.status = PersonStatus.STAND_UP;
+			this.transAnim = true;
+		}else {
+			this.status = PersonStatus.IDLE;
+		}
+	} else if(!this.transAnim){
+		this.Fly();
 	}
 	
 }
 
 Person.prototype.Jump = function()
 {
-	this.status = PersonStatus.JUMP;
-	this.player.body.velocity.y = -350;
+	if(!this.transAnim){
+		if(this.status == PersonStatus.RUN){
+			this.status = PersonStatus.JUMP;
+			this.player.body.velocity.y = this.jumpVelocity;
+		} else {
+			this.status = PersonStatus.DUCK;
+			this.transAnim = true;
+		}
+	}
+}
+
+Person.prototype.Fly = function()
+{
+	if(this.status != PersonStatus.FLY){
+		this.status = PersonStatus.JUMP;
+	} else {
+		this.status = PersonStatus.FLY;
+	}
 }
 
 Person.prototype.Land = function()
@@ -99,7 +129,10 @@ Person.prototype.Run = function()
 
 Person.prototype.Crouch = function(scale)
 {
-		this.status = PersonStatus.CROUCH;
+	if(!this.transAnim && this.status != PersonStatus.CROUCH){
+		this.status = PersonStatus.DUCK;
+		this.transAnim = true;
+	}
 }
 
 Person.prototype.StandUp = function()
@@ -158,16 +191,49 @@ Person.prototype.playAnimation = function() {
 		this.player.animations.play('idle');
 	}else if(this.status == PersonStatus.DUCK){
 		this.player.animations.play('duck');
-		this.player.events.onAnimationComplete.add(this.startJumping,this.context);
+		this.player.animations.currentAnim.onComplete.addOnce(function () {
+			if(cursors.up.isDown && person.onGround){
+				this.status = PersonStatus.JUMP;
+				this.player.body.velocity.y = this.jumpVelocity;
+			} else if(cursors.down.isDown && person.onGround) {
+				console.log('lol');
+				this.status = PersonStatus.CROUCH;
+				this.transAnim = false;
+			} else {
+				this.status = PersonStatus.STAND_UP;
+			}
+		}, this);
 	}else if(this.status == PersonStatus.JUMP){
 		this.player.animations.play('jump');
-		this.player.events.onAnimationComplete.add(this.startFlying,this.context);
+		this.player.animations.currentAnim.onComplete.addOnce(function () {
+		this.status = PersonStatus.FLY;
+			this.transAnim = false;
+		}, this);
+	}else if(this.status == PersonStatus.LAND){
+		this.player.animations.play('land');
+		this.player.animations.currentAnim.onComplete.addOnce(function () {
+			if(cursors.up.isDown && person.onGround){
+				this.status = PersonStatus.JUMP;
+				this.player.body.velocity.y = this.jumpVelocity;
+			} else {
+				this.status = PersonStatus.STAND_UP;
+			}
+		}, this);
+	}else if(this.status == PersonStatus.STAND_UP){
+		this.player.animations.play('standUp');
+		this.player.animations.currentAnim.onComplete.addOnce(function () {
+			this.transAnim = false;
+		}, this);
 	}else if(this.status == PersonStatus.RUN){
 		this.player.animations.play('run');
 	}else if(this.status == PersonStatus.IDLE){
 		this.player.animations.play('idle');
 	}else if(this.status == PersonStatus.CROUCH){
 		this.player.animations.play('crouch');
+		if (!cursors.down.isDown && person.onGround) {
+			this.status = PersonStatus.STAND_UP;
+			this.transAnim = true;
+		}
 	}else if(this.status == PersonStatus.ATTACK_UP){
 		this.player.animations.play('attackUp');
 	}else if(this.status == PersonStatus.ATTACK_STRAIGHT){
@@ -176,6 +242,7 @@ Person.prototype.playAnimation = function() {
 		this.player.animations.play('attackDown');
 	}
 	console.log(this.status);
+	console.log(this.transAnim);
 }
 
 PersonStatus = {
@@ -190,7 +257,8 @@ PersonStatus = {
 	ON_WALL: 9,
 	ATTACK_UP: 10,
 	ATTACK_STRAIGHT: 11,
-	ATTACK_DOWN: 12
+	ATTACK_DOWN: 12,
+	STAND_UP: 13
 }
 
 Person.prototype.startJumping = function(){
@@ -704,7 +772,6 @@ function update() {
 	} else
 	{
 		person.onGround = false;
-		person.status = PersonStatus.FLY;
 	}
 	
     if (cursors.left.isDown)
