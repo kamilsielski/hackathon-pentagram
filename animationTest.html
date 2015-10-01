@@ -33,7 +33,7 @@ Person = function (index, game, spriteName,x ,y ) {
 	var status = PersonStatus.IDLE;
     var x = x;
     var y = y;
-	var onGround = true;
+	this.onGround = true;
 	this.transAnim = false;
 	this.jumpVelocity = -400;
     this.game = game;
@@ -43,12 +43,26 @@ Person = function (index, game, spriteName,x ,y ) {
 	this.currentSpeed =0;
     this.alive = true;
     this.personId = index;
-	//  Player physics properties. Give the little guy a slight bounce.
     this.player.body.bounce.y = 0;
     this.player.body.gravity.y = 300;
     this.player.body.collideWorldBounds = true;
 	this.player.anchor.set(0.38, 1);
-	this.player.body.setSize((this.player.width/3)*2,this.player.height-25,-5,-5);
+	this.player.body.setSize(40,77,-5,-5);
+	
+	this.changedHitbox = false;
+	
+	this.darts = game.add.group();
+    this.darts.enableBody = true;
+    this.darts.physicsBodyType = Phaser.Physics.ARCADE;
+    this.darts.createMultiple(50, 'dart');
+
+    this.darts.setAll('checkWorldBounds', true);
+    this.darts.setAll('outOfBoundsKill', true);
+	this.darts.setAll('anchor.y', 0.5);
+	this.darts.setAll('anchor.x', 0.2);
+    
+    this.dart = this.darts.getFirstDead();
+	this.dartResetPoint = new Phaser.Point(this.player.x + 45, this.player.y - 52);
 };
 
 Person.prototype.moveLeft = function()
@@ -87,7 +101,7 @@ Person.prototype.standStill = function()
 			this.status = PersonStatus.STAND_UP;
 			this.transAnim = true;
 		}else {
-			this.status = PersonStatus.IDLE;
+			this.statusIdle();
 		}
 	} else if(!this.transAnim){
 		this.Fly();
@@ -169,18 +183,95 @@ Person.prototype.LandFromWall = function()
 
 Person.prototype.Attack = function(side)
 {
+	if(this.onGround){
+		this.statusAttackStraight();
 	
+		if(game.input.x < this.player.x){
+			this.player.scale.x = -1;
+			
+			this.dartResetPoint.x = this.player.x - 45;
+			this.dartResetPoint.y = this.player.y - 52;
+			var angle = Phaser.Math.angleBetween(person.dartResetPoint.x,person.dartResetPoint.y, game.input.x, game.input.y);
+			if(angle>=-3 && angle<=-2){
+				this.statusAttackUp();
+			} else if(angle>=-1 && angle<=0){
+				this.statusAttackDown();
+			}
+		} else {
+			this.player.scale.x = 1;
+			this.dartResetPoint.x = this.player.x + 45;
+			this.dartResetPoint.y = this.player.y - 52;
+			var angle = Phaser.Math.angleBetween(person.dartResetPoint.x,person.dartResetPoint.y, game.input.x, game.input.y);
+			if(angle<=3 && angle>=2){
+				this.statusAttackUp();
+			} else if(angle<=1 && angle>=0){
+				this.statusAttackDown();
+			}
+		}
+		this.fire();
+	}	
 }
 
 Person.prototype.Nothing = function()
 {
-	    if(this.status == PersonStatus.FLY)
-		{
-			this.player.animations.play('midAir');
-		}else
-		{
-			this.player.animations.play('idle');
-		}
+	if(this.status == PersonStatus.FLY)
+	{
+		this.player.animations.play('midAir');
+	}else
+	{
+		this.player.animations.play('idle');
+	}
+}
+
+Person.prototype.statusIdle = function()
+{
+	if(this.status == PersonStatus.ATTACK_UP){
+		this.player.x = this.player.x +(18 * this.player.scale.x);
+	}
+	this.player.body.setSize(40,77,-5,-5);
+	this.player.body.reset(this.player.x,this.player.y);
+	this.changedHitbox = false;
+	this.status = PersonStatus.IDLE;
+}
+
+Person.prototype.statusCrouch = function()
+{
+	this.status = PersonStatus.CROUCH;
+	if(!this.changedHitbox){
+		this.changedHitbox = true;
+		this.player.body.setSize(40,61,-5,-7);
+		this.player.body.reset(this.player.x,this.player.y);
+	}
+}
+
+Person.prototype.statusAttackUp = function()
+{
+	this.status = PersonStatus.ATTACK_UP;
+	if(!this.changedHitbox){
+		this.changedHitbox = true;
+		this.player.body.setSize(40,77,(13 * this.player.scale.x),-5);
+		this.player.x = this.player.x -(18 * this.player.scale.x);
+		this.player.body.reset(this.player.x,this.player.y);
+	}
+}
+
+Person.prototype.statusAttackStraight = function()
+{
+	if(this.status == PersonStatus.ATTACK_UP){
+		this.player.x = this.player.x +(18 * this.player.scale.x);
+	}
+	this.status = PersonStatus.ATTACK_STRAIGHT;
+	this.player.body.setSize(40,77,-5,-5);
+	this.player.body.reset(this.player.x,this.player.y);
+	this.changedHitbox = false;
+}
+
+Person.prototype.statusAttackDown = function()
+{
+	this.status = PersonStatus.ATTACK_DOWN;
+	this.player.body.setSize(40,77,-5,-5);
+	this.player.body.reset(this.player.x,this.player.y);
+	this.changedHitbox = false;
 }
 
 Person.prototype.playAnimation = function() {
@@ -197,7 +288,7 @@ Person.prototype.playAnimation = function() {
 				this.player.body.velocity.y = this.jumpVelocity;
 			} else if(cursors.down.isDown && person.onGround) {
 				console.log('lol');
-				this.status = PersonStatus.CROUCH;
+				this.statusCrouch();
 				this.transAnim = false;
 			} else {
 				this.status = PersonStatus.STAND_UP;
@@ -236,10 +327,19 @@ Person.prototype.playAnimation = function() {
 		}
 	}else if(this.status == PersonStatus.ATTACK_UP){
 		this.player.animations.play('attackUp');
+		if(!game.input.activePointer.isDown){
+			this.statusIdle();
+		}
 	}else if(this.status == PersonStatus.ATTACK_STRAIGHT){
 		this.player.animations.play('attackStraight');
+		if(!game.input.activePointer.isDown){
+			this.statusIdle();
+		}
 	}else if(this.status == PersonStatus.ATTACK_DOWN){
 		this.player.animations.play('attackDown');
+		if(!game.input.activePointer.isDown){
+			this.statusIdle();
+		}
 	}
 	console.log(this.status);
 	console.log(this.transAnim);
@@ -261,18 +361,28 @@ PersonStatus = {
 	STAND_UP: 13
 }
 
-Person.prototype.startJumping = function(){
-	this.status = PersonStatus.JUMP;
-	console.log(this.status);
-	console.log('testlog1');
+Person.prototype.fire = function() {
+
+    if (game.time.now > nextFire && this.darts.countDead() > 0 && this.fireValidFrame(this.player.animations.currentFrame))
+    {
+        nextFire = game.time.now + fireRate;
+
+        var dart = this.darts.getFirstExists(false);
+        dart.reset(this.dartResetPoint.x, this.dartResetPoint.y);
+        
+        dart.rotation = game.physics.arcade.moveToPointer(dart, 650);
+    }
+
 }
 
-Person.prototype.startFlying = function(){
-	this.status = PersonStatus.FLY;
-	console.log(this.status);
-	console.log('testlog2');
+Person.prototype.fireValidFrame = function(frame) {
+	if(frame.name == 'attackStraight/attackStraight_003.png' ||
+		frame.name == 'attackUp/attackUp_003.png' ||
+		frame.name == 'attackDown/attackDown_003.png'){
+		return true;
+	}
+	return false;
 }
-
 
 Map = function(mapName) {
 	var mapJSON = game.cache.getJSON(mapName);
@@ -292,7 +402,7 @@ function preload() {
     
 	game.load.atlasJSONHash('orangeGuy', 'assets/orangeGuy.png', 'assets/orangeGuy.json');
 	game.load.atlasJSONHash('objects', 'assets/blocks.png', 'assets/blocks.json');
-	game.load.image('bullet', 'assets/dart.png');
+	game.load.image('dart', 'assets/dart.png');
     game.load.image('sky', 'assets/background.png');
 
 }
@@ -301,9 +411,8 @@ var player;
 var blocks
 var cursors;
 
-var sprite;
-var bullets;
-var bullet;
+var darts;
+var dart;
 
 var fireRate = 100;
 var nextFire = 0;
@@ -462,15 +571,7 @@ function create() {
     // Here we create the ground.
 	map = new Map('map1');
 	
-	bullets = game.add.group();
-    bullets.enableBody = true;
-    bullets.physicsBodyType = Phaser.Physics.ARCADE;
-    bullets.createMultiple(50, 'bullet');
-
-    bullets.setAll('checkWorldBounds', true);
-    bullets.setAll('outOfBoundsKill', true);
-    
-    bullet = bullets.getFirstDead();
+	
 
    
 
@@ -478,11 +579,7 @@ function create() {
     person = new Person(1,game,'orangeGuy',500,500, this);
     //  We need to enable physics on the playergeG
 
-    sprite = game.add.sprite(person.player.body.velocity.x, person.player.body.velocity.y, person.spriteName);
-    sprite.anchor.set(0.5);
     game.physics.arcade.enable(person.player);
-	game.physics.enable(sprite, Phaser.Physics.ARCADE);
-	sprite.body.allowRotation = false;
 
     //  Our two animations, walking left and right.
     person.player.animations.add('walk', [
@@ -753,13 +850,10 @@ function create() {
 
 function update() {
 
-	sprite = game.add.sprite(person.player.body.x, person.player.body.y, person.spriteName);
-
-
 	//  Collide the player and the stars with the platforms
 	game.physics.arcade.collide(person.player, blocks);
-	game.physics.arcade.overlap(bullets, blocks, collectBullet, null, this);
-	game.physics.arcade.collide(bullets, blocks);
+	game.physics.arcade.overlap(darts, blocks, collectDart, null, this);
+	game.physics.arcade.collide(darts, blocks);
 
 //	bullet.rotation = game.physics.arcade.moveToPointer(bullet, 650);
 	
@@ -790,13 +884,10 @@ function update() {
 	else {
 		person.standStill();
 	}
-    
-    sprite.rotation = game.physics.arcade.angleToPointer(sprite);
 
     if (game.input.activePointer.isDown)
     {
-    	person.player.animations.play('attackUp');
-        fire();
+    	person.Attack();
     }
     
 	if (cursors.up.isDown && person.onGround)
@@ -806,27 +897,19 @@ function update() {
 	person.playAnimation();
 }
 
-function fire() {
 
-    if (game.time.now > nextFire && bullets.countDead() > 0)
-    {
-        nextFire = game.time.now + fireRate;
 
-        var bullet = bullets.getFirstExists(false);
-        bullet.reset(sprite.x - 8, sprite.y - 8);
-        
-        bullet.rotation = game.physics.arcade.moveToPointer(bullet, 650);
-    }
-
-}
-
-function collectBullet(bullet, blocks) {
-    bullet.kill();
+function collectDart(dart, blocks) {
+    dart.kill();
 }
 
 function render() {
-    game.debug.text('Active Bullets: ' + bullets.countLiving() + ' / ' + bullets.total, 32, 32);
-    game.debug.spriteInfo(sprite, 32, 450);
+    //game.debug.text('Active Bullets: ' + bullets.countLiving() + ' / ' + bullets.total, 32, 32);
+	game.debug.body(person.player);
+	game.debug.text(person.player.animations.currentAnim.frame,32, 20)
+	game.debug.text(Phaser.Math.angleBetween(person.dartResetPoint.x,person.dartResetPoint.y, game.input.x, game.input.y),32, 40)
+	game.debug.text(person.status, 32,60);
+	game.debug.text(person.transAnim, 32,80);
 }
 
 </script>
